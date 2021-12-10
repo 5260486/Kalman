@@ -1,4 +1,4 @@
-%% 卡尔曼滤波进行负荷预测
+%% 卡尔曼滤波
 
 %%获得数据
 mpc=datapretreat;
@@ -69,12 +69,11 @@ for i=1:N-1
         xk.x3=X; %得到真实数据
     end  
     Y(:,i)=y;    %得到观测数据
-%     bbr(:,i)=br;
+
 end  
-% bsum=bbr(:,2)+bbr(:,3);
-% bavg=bsum/2;
 
 %% 卡尔曼滤波
+T=mpc.tem;
 for j=1:24  %每个小时
     y=Y(j,:);%单个小时前三天的观测值
     for i=1:N-1  %前三天
@@ -101,7 +100,9 @@ for j=1:24  %每个小时
 
         % 存储滤波结果
         if i==N-1
-            x_filter(j,:)=x*H';
+            x_filter(j)=x*H';
+            u=30;%气温修正系数
+            x_filter2(j)=x*H'+u*(T(j,i)-Ltk(j));%对当天气温进行修正
             K(j,:) = k;
         end
     end
@@ -112,6 +113,22 @@ y1=[];
 for i=(24*(N-1)+1):24*N
     y1(end+1)=mpc.b1(i);%第四天的真实值
 end
-date=0:23;
-plot(date,x_filter,date,y1);grid on;
-legend('kalman','real');
+hour=0:23;
+
+% plot(hour,x_filter,'b-o',hour,y1,'k-+');grid on;
+% legend('Kalman1','Real');
+% xlabel('t/h');ylabel('Load/W');
+
+% plot(hour,x_filter2,'r-o',hour,y1,'k-+');grid on;
+% legend('Kalman2','Real');
+% xlabel('t/h');ylabel('Load/W');
+
+%% 绝对误差计算
+d1=[];
+d2=[];
+for i=1:24
+    d1(end+1)=100*abs(x_filter(i)-y1(i))/y1(i);
+    d2(end+1)=100*abs(x_filter2(i)-y1(i))/y1(i);
+end
+plot(hour,d1,hour,d2);
+legend('d1','d2')
